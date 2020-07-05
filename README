@@ -8,7 +8,7 @@ Requires GHC 8.10 and above
 
 You can start the examples with
 
-cabal repl Examples.Type_.hs
+cabal repl
 
 where _ is the appropriate name, see below.
 
