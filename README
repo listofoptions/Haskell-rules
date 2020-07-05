@@ -10,8 +10,6 @@ You can start the examples with
 
 cabal repl
 
-where _ is the appropriate name, see below.
-
 Other Haskell compilers/versions not tested. Your mileage may vary. (updated to latest haskell, test suite pending)
 
 2. CORE FILES
