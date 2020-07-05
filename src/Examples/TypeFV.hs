@@ -3,7 +3,7 @@
 {-#LANGUAGE FunctionalDependencies#-}
 {-#LANGUAGE FlexibleInstances#-}
 {-#LANGUAGE FlexibleContexts#-}
-module TypeFV where
+module Examples.TypeFV where
 
 import TypeGU
 import TypeGT

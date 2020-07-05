@@ -3,11 +3,11 @@
 {-#LANGUAGE FunctionalDependencies#-}
 {-#LANGUAGE FlexibleInstances#-}
 {-#LANGUAGE FlexibleContexts#-}
-module TypeChgMin where
+module Examples.TypeChgMin where
 
 import Control.Monad
 import TypeGT
-import TypeChg
+import Examples.TypeChg
 
 
 instance Judgement (Env,Expr) (Expr,FT) where

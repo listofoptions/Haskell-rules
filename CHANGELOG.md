@@ -1,4 +1,4 @@
-# Revision history for HaskellRules-jun06
+# Revision history for Haskell-Rules
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

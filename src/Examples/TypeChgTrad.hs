@@ -3,11 +3,11 @@
 {-#LANGUAGE FunctionalDependencies#-}
 {-#LANGUAGE FlexibleInstances#-}
 {-#LANGUAGE FlexibleContexts#-}
-module TypeChgTrad where
+module Examples.TypeChgTrad where
 
 import Control.Monad
 import TypeGT
-import TypeChg
+import Examples.TypeChg
 
 instance Judgement (Env,Expr) (Expr,FT) where
     rules = [app, var, tup, lam, letr, arg, par, def]

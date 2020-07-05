@@ -3,7 +3,7 @@
 {-#LANGUAGE FunctionalDependencies#-}
 {-#LANGUAGE FlexibleInstances#-}
 {-#LANGUAGE FlexibleContexts#-}
-module TypeChg where
+module Examples.TypeChg where
 
 import Control.Monad
 import NDSM

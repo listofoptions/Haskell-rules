@@ -2,7 +2,7 @@
 {-#LANGUAGE MultiParamTypeClasses#-}
 {-#LANGUAGE FunctionalDependencies#-}
 {-#LANGUAGE FlexibleInstances#-}
-module TypeFVSet where
+module Examples.TypeFVSet where
 
 import TypeGU
 import TypeGT

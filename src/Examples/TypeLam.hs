@@ -3,7 +3,7 @@
 {-#LANGUAGE FunctionalDependencies#-}
 {-#LANGUAGE FlexibleInstances#-}
 {-#LANGUAGE FlexibleContexts#-}
-module TypeLam where
+module Examples.TypeLam where
 
 import Control.Monad
 import NDSM
@@ -127,10 +127,10 @@ letsid = minf [("1", TInt), ("t", TBool)]
     )
 
 
-plus x y       = App (App (Var "plus") x) y
-if2 x y z       = App (App (App (Var "if") x) y) z
+plus x y = App (App (Var "plus") x) y
+if2 x y z = App (App (App (Var "if") x) y) z
 i1 = Var "1"
-eq  x y        = App (App (Var "eq") x) y
+eq x y = App (App (Var "eq") x) y
 aid x = App (Var "id") x
 
 poly =  minf baseenv (Pair (aid (Var "t")) (aid i1))
