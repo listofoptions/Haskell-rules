@@ -1,6 +1,11 @@
+{-#LANGUAGE DeriveDataTypeable#-}
+{-#LANGUAGE MultiParamTypeClasses#-}
+{-#LANGUAGE FunctionalDependencies#-}
+{-#LANGUAGE FlexibleInstances#-}
+{-#LANGUAGE FlexibleContexts#-}
 module TypeChgPlus where
 
-import Monad
+import Control.Monad
 import NDSM
 import TypeGU
 import TypeGT
@@ -13,8 +18,8 @@ data FT = TVar MVar | TInt | TBool | Fun FT FT | Tup FT FT | Forall MVar FT | Un
 
 
 newTVar = do
-	m <- newMVar
-	return (TVar m)
+    m <- newMVar
+    return (TVar m)
 
 -- *** STUFF FOR SHOWING TYPES
 perm [] = [[]]  
@@ -27,32 +32,32 @@ tvl n = perm (tvel n)
 tv = [x | n <- [1..], x <- tvl n]   
 
 instance Show FT where
-	show (TVar (MVar x)) = tv !! x
-	show TInt = "Int"
-	show TBool = "Bool"
-	show Undef = "?"
-	show (Fun s t) = showF s++"->"++show t
-	show (Tup s t) = "("++show s++","++show t++")"
-	show (Forall (MVar a) t) = "forall "++tv !! a++"."++show t
-	show (List t) = "["++show t++"]"
+    show (TVar (MVar x)) = tv !! x
+    show TInt = "Int"
+    show TBool = "Bool"
+    show Undef = "?"
+    show (Fun s t) = showF s++"->"++show t
+    show (Tup s t) = "("++show s++","++show t++")"
+    show (Forall (MVar a) t) = "forall "++tv !! a++"."++show t
+    show (List t) = "["++show t++"]"
 showF t@(Fun _ _) = brack t
 showF t           = show t
 brack e = '(':show e++")"
 
 
-	
+    
 
 instance Unifiable FT where
 
 -- since we will be having expressions as a result
 -- they must be subject to unification
 data Expr = Var String | App Expr Expr | Lam String Expr | Pair Expr Expr
-	| Let String Expr Expr | Chg Expr Expr | EVar MVar
+    | Let String Expr Expr | Chg Expr Expr | EVar MVar
         deriving (Eq, Read, Typeable, Data)
 
 newEVar = do
-	m <- newMVar
-	return (EVar m)
+    m <- newMVar
+    return (EVar m)
 
 
 instance Unifiable Expr where
@@ -60,15 +65,15 @@ instance Unifiable Expr where
 instance Unifiable (Expr,FT) where
 
 instance Isomorphic (Expr,FT) (Expr,FT) where
-	to = id
-	from = id
+    to = id
+    from = id
 
 instance Isomorphic FT FT where
-	to = id
-	from = id
+    to = id
+    from = id
 
 instance Wrapable FT where
-	wrap = TVar
+    wrap = TVar
 
 
 -- ** STUFF FOR SHOWING EXPRESSIONS
@@ -92,139 +97,139 @@ showR e           = show e
 type Env = [(String, FT)]
 
 instance Judgement (Env,Expr) (Expr,FT) where
-	rules = [app, arg, par, var, tup, lam, letr, def]
+    rules = [app, arg, par, var, tup, lam, letr, def]
 
 app (env, (App e1 e2)) = do
-		a <- newTVar
-		b <- newTVar
-		f <- newEVar
-		g <- newEVar
-		(env, e1) .>. (f, (Fun a b))
-		(env, e2) .>. (g, a)
-		return (App f g, b)
+        a <- newTVar
+        b <- newTVar
+        f <- newEVar
+        g <- newEVar
+        (env, e1) .>. (f, (Fun a b))
+        (env, e2) .>. (g, a)
+        return (App f g, b)
 app _ = mzero
 
 arg (env, (App e1 e2)) = do
-		a <- newTVar
-		b <- newTVar
-		c <- newTVar
-		f <- newEVar
-		g <- newEVar
-		(env, e1) .>. (f, (Fun a b))
-		(env, e2) .>. (g, c)
-		a ./=. c
-		-- find all in env ==c
-		(str,ft) <- extEnv env
-		-- match the type of ft to a
-		ft .==. a
-		return (App f (Chg g (Var str)), b)
+        a <- newTVar
+        b <- newTVar
+        c <- newTVar
+        f <- newEVar
+        g <- newEVar
+        (env, e1) .>. (f, (Fun a b))
+        (env, e2) .>. (g, c)
+        a ./=. c
+        -- find all in env ==c
+        (str,ft) <- extEnv env
+        -- match the type of ft to a
+        ft .==. a
+        return (App f (Chg g (Var str)), b)
 arg _ = mzero
 
 
 par (env, (App e1 e2)) = do
-		a <- newTVar
-		b <- newTVar
-		c <- newTVar
-		f <- newEVar
-		g <- newEVar
-		(env, e1) .>. (f, (Fun a b))
-		(env, e2) .>. (g, c)
-		a ./=. c
-		-- find all in env ==c
-		(str,ft) <- extEnv env
-		-- match the type of ft to a
-		ft .==. (Fun c b)
-		return (App (Chg f (Var str)) g, b)
+        a <- newTVar
+        b <- newTVar
+        c <- newTVar
+        f <- newEVar
+        g <- newEVar
+        (env, e1) .>. (f, (Fun a b))
+        (env, e2) .>. (g, c)
+        a ./=. c
+        -- find all in env ==c
+        (str,ft) <- extEnv env
+        -- match the type of ft to a
+        ft .==. (Fun c b)
+        return (App (Chg f (Var str)) g, b)
 par _ = mzero
 
 
 var (env, va@(Var x)) = case (lookup x env) of
-			(Just y) -> do
-				y' <- forall' y
-				return (va,y')
-			Nothing -> do
-				a <- newTVar
-				-- find all in env ==c
-				(str,ft) <- extEnv env
-				-- match the type of ft to a
-				ft .==. a
-				return (Chg (Var x) (Var str), a)
+            (Just y) -> do
+                y' <- forall' y
+                return (va,y')
+            Nothing -> do
+                a <- newTVar
+                -- find all in env ==c
+                (str,ft) <- extEnv env
+                -- match the type of ft to a
+                ft .==. a
+                return (Chg (Var x) (Var str), a)
 var _ = mzero
 
 vchg (env, (Var x)) = case (lookup x env) of
-			(Just y) -> do
-				a <- newTVar
-				y' <- forall' y
-				-- find all in env ==c
-				(str,ft) <- extEnv env
-				-- match the type of ft to a
-				ft .==. a
-				return (Chg (Var x) (Var str), a)
-			Nothing -> mzero
+            (Just y) -> do
+                a <- newTVar
+                y' <- forall' y
+                -- find all in env ==c
+                (str,ft) <- extEnv env
+                -- match the type of ft to a
+                ft .==. a
+                return (Chg (Var x) (Var str), a)
+            Nothing -> mzero
 vchg _ = mzero
 
 tup (env, (Pair e1 e2)) = do
-		a <- newTVar
-		b <- newTVar
-		f <- newEVar
-		g <- newEVar
-		(env, e1) .>. (f, a)
-		(env, e2) .>. (g, b)
-		return (Pair f g, Tup a b)
+        a <- newTVar
+        b <- newTVar
+        f <- newEVar
+        g <- newEVar
+        (env, e1) .>. (f, a)
+        (env, e2) .>. (g, b)
+        return (Pair f g, Tup a b)
 tup _ = mzero
 
 lam (env, (Lam x e)) = do
-		a <- newTVar
-		b <- newTVar
-		f <- newEVar
-		((x,a):env, e) .>. (f, b)
-		return (Lam x f, Fun a b)
+        a <- newTVar
+        b <- newTVar
+        f <- newEVar
+        ((x,a):env, e) .>. (f, b)
+        return (Lam x f, Fun a b)
 lam _ = mzero
 
 letr (env, (Let x e1 e2)) = do
-		a <- newTVar
-		b <- newTVar
-		f <- newEVar
-		g <- newEVar
-		((x,a):env, e1) .>. (f, a)
-		m <- gen' a
-		(((x, m):env), e2) .>. (g, b)
-		return (Let x f g, b)
+        a <- newTVar
+        b <- newTVar
+        f <- newEVar
+        g <- newEVar
+        ((x,a):env, e1) .>. (f, a)
+        m <- gen' a
+        (((x, m):env), e2) .>. (g, b)
+        return (Let x f g, b)
 letr _ = mzero
 
 def (env, (Let x e1 e2)) = do
-                a <- newTVar
-                b <- newTVar
-		c <- newTVar
-		f <- newEVar
-		g <- newEVar
-                ((x,a):env, e1) .>. (f, c)
-		m <- gen' a
-                (((x, m):env), e2) .>. (f, b)
-		a ./=. c
-		-- find all in env ==c
-		(str,ft) <- extEnv env
-		-- match the type of ft to a
-		ft .==. c
-                return (Let x (Chg f (Var str)) g,b)
+        a <- newTVar
+        b <- newTVar
+        c <- newTVar
+        f <- newEVar
+        g <- newEVar
+        ((x,a):env, e1) .>. (f, c)
+        m <- gen' a
+        (((x, m):env), e2) .>. (f, b)
+        a ./=. c
+        -- find all in env ==c
+        (str,ft) <- extEnv env
+        -- match the type of ft to a
+        ft .==. c
+        return (Let x (Chg f (Var str)) g,b)
 def _ = mzero
 
 
 extEnv :: Env -> M (String, FT)
 extEnv ((s,f):env) = do
-	mplus (return (s,f)) (extEnv env)
+    mplus (return (s,f)) (extEnv env)
 extEnv [] = mzero
 
 --(./=.) = bp ( (/=) :: FT -> FT -> Bool)
 
 (./=.) x y = do
-	a <- newTVar
-	bind (GFS ((\[x, y]->
-		case (gunify x y) of
-		(Just _) -> mzero
-		Nothing -> do {m <- newMVar; return (mkGS m);}) , [mkGS x, mkGS y])
-		) a
-	return a
+    a <- newTVar
+    bind (GFS ((\[x, y]->
+        case (gunify x y) of
+        (Just _) -> mzero
+        Nothing -> do {m <- newMVar; return (mkGS m);}) , [mkGS x, mkGS y])
+        ) a
+    return a
 
 
 -- generalize: for all variables v, prefix type with Forall v
@@ -243,9 +248,9 @@ findvars _ = []
 -- variables
 forall :: FT -> M FT
 forall (Forall t x) = do
-	t' <- newTVar
-	let x' = sub x (TVar t) t'
-	forall x'
+    t' <- newTVar
+    let x' = sub x (TVar t) t'
+    forall x'
 forall x = return x
 
 forall' = ufM forall
@@ -261,36 +266,36 @@ minf x y = map set (inf (x,y))
 uda = minf ([]::Env) (App (Var "x") (Var "y"))
 
 nott = minf
-	baseenv
-	(App (Var "not") (Var "t"))
+    baseenv
+    (App (Var "not") (Var "t"))
 
 not1 = minf
-	baseenv
-	(App (Var "not") (Var "1"))
+    baseenv
+    (App (Var "not") (Var "1"))
 
 
 ptt = minf
-	baseenv
-	(App (App (Var "plus") (Var "t")) (Var "t"))
+    baseenv
+    (App (App (Var "plus") (Var "t")) (Var "t"))
 sid = minf 
-	baseenv
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
+    baseenv
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
 
 nsid = minf
-	(("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
+    (("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
 
 oknsid = minf
-	(("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "2")))
+    (("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "2")))
 
 
 lxx = Lam "x" (Var "x")
 
 letsid = minf [("t", TBool), ("1", TInt)]
-	(Let "id" (Lam "x" (Var "x")) 
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
-	)
+    (Let "id" (Lam "x" (Var "x")) 
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
+    )
 
 
 cons x y = App (App (Var "cons") x) y
@@ -310,7 +315,7 @@ tough5 = Lam "n" (App (App (App (Var "foldl") (Var "succ")) i1) (Var "n"))
 
 
 letx11 = minf baseenv
-	(Let "x" (Var "1") (App (Var "x") (Var "x")))
+    (Let "x" (Var "1") (App (Var "x") (Var "x")))
 
 plus x y       = App (App (Var "plus") x) y
 if2 x y z       = App (App (App (Var "if") x) y) z
@@ -347,15 +352,15 @@ baseenv = [("1", TInt), ("2", TInt), ("t", TBool),
         ("if", Forall (MVar (-1)) (Fun TBool (Fun a (Fun a a)))),
         ("plus", Fun TInt (Fun TInt TInt)),
         ("id", Forall (MVar (-1)) (Fun a a)),
-	("not", Fun TBool TBool),
-	("foldl", Forall (MVar (-2)) $ Forall (MVar (-1)) $ 
-		Fun (Fun a (Fun b a)) (Fun a (Fun (List b) a))),
+    ("not", Fun TBool TBool),
+    ("foldl", Forall (MVar (-2)) $ Forall (MVar (-1)) $ 
+        Fun (Fun a (Fun b a)) (Fun a (Fun (List b) a))),
         ("map", Forall (MVar (-2)) $ Forall (MVar (-1)) $
-		Fun (Fun a b) (Fun (List a) (List b))),
+        Fun (Fun a b) (Fun (List a) (List b))),
         (".", Forall (MVar (-3)) $ Forall (MVar (-2)) $ Forall (MVar (-1)) $ 
-		Fun (Fun a b) (Fun (Fun c a) (Fun c b))),
+        Fun (Fun a b) (Fun (Fun c a) (Fun c b))),
         ("cons", Forall (MVar (-1)) (Fun a (Fun (List a) (List a)))),
-	("el", Forall (MVar (-1)) $ List a),
-	("succ", Fun TInt TInt)
-	]
+    ("el", Forall (MVar (-1)) $ List a),
+    ("succ", Fun TInt TInt)
+    ]
 

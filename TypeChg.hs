@@ -1,6 +1,11 @@
+{-#LANGUAGE DeriveDataTypeable#-}
+{-#LANGUAGE MultiParamTypeClasses#-}
+{-#LANGUAGE FunctionalDependencies#-}
+{-#LANGUAGE FlexibleInstances#-}
+{-#LANGUAGE FlexibleContexts#-}
 module TypeChg where
 
-import Monad
+import Control.Monad
 import NDSM
 import TypeGU
 import TypeGT
@@ -13,8 +18,8 @@ data FT = TVar MVar | TInt | TBool | Fun FT FT | Tup FT FT | Forall MVar FT | Un
 
 
 newTVar = do
-	m <- newMVar
-	return (TVar m)
+    m <- newMVar
+    return (TVar m)
 
 -- *** STUFF FOR SHOWING TYPES
 perm [] = [[]]  
@@ -27,34 +32,34 @@ tvl n = perm (tvel n)
 tv = [x | n <- [1..], x <- tvl n]   
 
 instance Show FT where
-	show (TVar (MVar x)) = tv !! x
-	show TInt = "Int"
-	show TBool = "Bool"
-	show Undef = "?"
-	show (Fun s t) = showF s++"->"++show t
-	show (Tup s t) = "("++show s++","++show t++")"
-	show (Forall (MVar a) t) = "forall "++tv !! a++"."++show t
-	show (List t) = "["++show t++"]"
+    show (TVar (MVar x)) = tv !! x
+    show TInt = "Int"
+    show TBool = "Bool"
+    show Undef = "?"
+    show (Fun s t) = showF s++"->"++show t
+    show (Tup s t) = "("++show s++","++show t++")"
+    show (Forall (MVar a) t) = "forall "++tv !! a++"."++show t
+    show (List t) = "["++show t++"]"
 showF t@(Fun _ _) = brack t
 showF t           = show t
 brack e = '(':show e++")"
 
 
-	
+    
 
 instance Unifiable FT where
 
 -- since we will be having expressions as a result
 -- they must be subject to unification
 data Expr = Var String | App Expr Expr | Lam String Expr | Pair Expr Expr
-	| Let String Expr Expr | Chg Expr FT FT | EVar MVar
+    | Let String Expr Expr | Chg Expr FT FT | EVar MVar
         deriving (Eq, Read, Typeable, Data)
 
 
 
 newEVar = do
-	m <- newMVar
-	return (EVar m)
+    m <- newMVar
+    return (EVar m)
 
 
 instance Unifiable Expr where
@@ -62,18 +67,18 @@ instance Unifiable Expr where
 instance Unifiable (Expr,FT) where
 
 instance Isomorphic (Expr,FT) (Expr,FT) where
-	to = id
-	from = id
+    to = id
+    from = id
 
 instance Isomorphic FT FT where
-	to = id
-	from = id
+    to = id
+    from = id
 
 instance Wrapable FT where
-	wrap = TVar
+    wrap = TVar
 
 instance Wrapable Expr where
-	wrap = EVar
+    wrap = EVar
 
 
 -- ** STUFF FOR SHOWING EXPRESSIONS
@@ -102,14 +107,14 @@ type Env = [(String, FT)]
 --(./=.) = bp ( (/=) :: FT -> FT -> Bool)
 
 (./=.) x y = do
-	a <- newTVar
-	bind (GFS ((\[x, y]->
-		case (gunify x y) of
-		(Just _) -> mzero
-		Nothing -> do {m <- newMVar; return (mkGS m);}) 
-		, [mkGS x, mkGS y])
-		) a
-	return a
+    a <- newTVar
+    bind (GFS ((\[x, y]->
+        case (gunify x y) of
+        (Just _) -> mzero
+        Nothing -> do {m <- newMVar; return (mkGS m);}) 
+        , [mkGS x, mkGS y])
+        ) a
+    return a
 
 
 -- generalize: for all variables v, prefix type with Forall v
@@ -128,9 +133,9 @@ findvars _ = []
 -- variables
 forall :: FT -> M FT
 forall (Forall t x) = do
-	t' <- newTVar
-	let x' = sub x (TVar t) t'
-	forall x'
+    t' <- newTVar
+    let x' = sub x (TVar t) t'
+    forall x'
 forall x = return x
 
 forall' = ufM forall
@@ -149,32 +154,32 @@ minf x y = map set (inf (x,y))
 uda = minf ([]::Env) (App (Var "x") (Var "y"))
 
 nott = minf
-	baseenv
-	(App (Var "not") (Var "t"))
+    baseenv
+    (App (Var "not") (Var "t"))
 
 not1 = minf
-	baseenv
-	(App (Var "not") (Var "1"))
+    baseenv
+    (App (Var "not") (Var "1"))
 
 
 sid = minf 
-	baseenv
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
+    baseenv
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
 
 nsid = minf
-	(("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
+    (("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
 
 oknsid = minf
-	(("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "2")))
+    (("id", Fun (TVar (MVar 2)) (TVar (MVar 2))):baseenv)
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "2")))
 
 
 
 letsid = minf [("t", TBool), ("1", TInt)]
-	(Let "id" (Lam "x" (Var "x")) 
-	(Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
-	)
+    (Let "id" (Lam "x" (Var "x")) 
+    (Pair (App (Var "id") (Var "1")) (App (Var "id") (Var "t")))
+    )
 
 --}
 
@@ -245,7 +250,7 @@ tuple :: Int -> Int -> Expr -> Expr -> Expr
 tuple k 1 x x' = if (k < 1) then x' else x
 tuple k n x x' | odd n = Pair (tuple k 1 x x') (tuple (k-1) (n-1) x x') 
 tuple k n x x' | even n = Pair (tuple k n2 x x') (tuple (k-n2) n2 x x')
-	where n2 = n `div` 2
+    where n2 = n `div` 2
 
 bapp :: Bool -> Int -> Int -> Expr -> Expr -> Expr -> Expr
 bapp True k 1 _ _  x = x
@@ -254,21 +259,21 @@ bapp b k n f f' x = App (bapp False k 1 f f' x) (bapp b (k-1) (n-1) f f' x)
 
 
 myt = [tuple 5 n (Var "succ") undefined | n <- [1..5]] ++
-	[Lam "f" $ tuple 5 n (Var "f") undefined | n <- [1..5]] ++
-	[tuple 5 n (App (Var "succ") i1) undefined | n <- [1..5]] ++
-	[Lam "f" $ tuple k n (App (Var "succ") i1) (App (Var "f") i1) |
-		n <- [1..5], k <- [0..5]]++
-	[Lam "x" $ tuple k n (App (Var "succ") (Var "x")) (App (Var "succ") i1) |
-		n <- [1..5], k <- [0..5]]++
-	[bapp True 5 n (Var "succ") undefined i1 | n <- [1..5]]++
-	[Lam "f" $ bapp True k n (Var "succ") (Var "f") i1 |
-		n <- [1..5], k <- [0..5]]
-	
+    [Lam "f" $ tuple 5 n (Var "f") undefined | n <- [1..5]] ++
+    [tuple 5 n (App (Var "succ") i1) undefined | n <- [1..5]] ++
+    [Lam "f" $ tuple k n (App (Var "succ") i1) (App (Var "f") i1) |
+        n <- [1..5], k <- [0..5]]++
+    [Lam "x" $ tuple k n (App (Var "succ") (Var "x")) (App (Var "succ") i1) |
+        n <- [1..5], k <- [0..5]]++
+    [bapp True 5 n (Var "succ") undefined i1 | n <- [1..5]]++
+    [Lam "f" $ bapp True k n (Var "succ") (Var "f") i1 |
+        n <- [1..5], k <- [0..5]]
+    
 fs = [mkf "f" "f" "f", mkf "f" "f" "g", mkf "f" "g" "h"]
 
 fs2 = [mkf2 "f" "f" "f" "f", mkf2 "f" "f" "f" "g", mkf2 "f" "f" "g" "h",
-	mkf2 "f" "g" "h" "a", mkf2 "f" "f" "g" "f", mkf2 "f" "g" "f" "f",
-	mkf2 "g" "f" "f" "f"]
+    mkf2 "f" "g" "h" "a", mkf2 "f" "f" "g" "f", mkf2 "f" "g" "f" "f",
+    mkf2 "g" "f" "f" "f"]
 
 mkf x y z = Lam "f" $ Lam "g" $ Lam "h" $ App (Var x) (App (Var y) (App (Var z) i1))
 
@@ -288,13 +293,13 @@ vry = Lam "y" $ Pair (Pair sx sx) (Pair sx sx)
 
 
 vrs = Lam "x" $ Lam "y" $ Lam "z" $ Lam "a" $ Pair 
-	(Pair (suc (Var "x")) (suc (Var "y"))) 
-	(Pair (suc (Var "z")) (suc (Var "a")))
+    (Pair (suc (Var "x")) (suc (Var "y"))) 
+    (Pair (suc (Var "z")) (suc (Var "a")))
 
 
 vrs2 = Lam "x" $ Lam "y" $ Lam "z" $ Lam "a" $ Pair 
-	(Pair (suc (Var "x")) (suc (Var "y"))) 
-	(Pair (suc (Var "z")) (App (Var "not") (Var "x")))
+    (Pair (suc (Var "x")) (suc (Var "y"))) 
+    (Pair (suc (Var "z")) (App (Var "not") (Var "x")))
 
 
 
@@ -340,17 +345,17 @@ baseenv = [("1", TInt), ("2", TInt), ("t", TBool),
         ("if", Forall (MVar (-1)) (Fun TBool (Fun a a))),
         ("plus", Fun TInt (Fun TInt TInt)),
         ("id", Forall (MVar (-1)) (Fun a a)),
-	("not", Fun TBool TBool),
-	("foldl", Forall (MVar (-2)) $ Forall (MVar (-1)) $ 
-		Fun (Fun a (Fun b a)) (Fun a (Fun (List b) a))),
+    ("not", Fun TBool TBool),
+    ("foldl", Forall (MVar (-2)) $ Forall (MVar (-1)) $ 
+        Fun (Fun a (Fun b a)) (Fun a (Fun (List b) a))),
         ("map", Forall (MVar (-2)) $ Forall (MVar (-1)) $
-		Fun (Fun a b) (Fun (List a) (List b))),
+        Fun (Fun a b) (Fun (List a) (List b))),
         (".", Forall (MVar (-3)) $ Forall (MVar (-2)) $ Forall (MVar (-1)) $ 
-		Fun (Fun a b) (Fun (Fun c a) (Fun c b))),
+        Fun (Fun a b) (Fun (Fun c a) (Fun c b))),
         ("cons", Forall (MVar (-1)) (Fun a (Fun (List a) (List a)))),
-	("el", Forall (MVar (-1)) $ List a),
-	("succ", Fun TInt TInt)
-	]
+    ("el", Forall (MVar (-1)) $ List a),
+    ("succ", Fun TInt TInt)
+    ]
 
 
 count :: String -> Expr -> Int
@@ -363,78 +368,93 @@ count _ _ = 0
 
 profile :: Expr -> (Int,Int)
 profile (App e1 e2) = (a1+a2+1,b1+b2)
-	where 	(a1,b1) = profile e1
-		(a2,b2) = profile e1
+    where  
+        (a1,b1) = profile e1
+        (a2,b2) = profile e1
 profile (Pair e1 e2) = (a1+a2,b1+b2+1)
-	where 	(a1,b1) = profile e1
-		(a2,b2) = profile e1
+    where  
+        (a1,b1) = profile e1
+        (a2,b2) = profile e1
 profile (Let _ e1 e2) = (a1+a2,b1+b2)
-	where 	(a1,b1) = profile e1
-		(a2,b2) = profile e1
+    where  
+        (a1,b1) = profile e1
+        (a2,b2) = profile e1
 profile (Lam _ e1) = profile e1
 profile _ = (0,0)
 
 dvu :: [String] -> Expr -> (Int,Int)
 dvu env (Var x) = case (elem x env) of
-		True -> (1,0)
-		False -> (0,1)
+        True -> (1,0)
+        False -> (0,1)
 dvu env (App e1 e2) = (a1+a2,b1+b2)
-	where	(a1,b1) = dvu env e1
-		(a2,b2) = dvu env e2
+    where  
+        (a1,b1) = dvu env e1
+        (a2,b2) = dvu env e2
 dvu env (Lam x e1) = (a+count x e1,b)
-	where	(a,b) = dvu (x:env) e1
+    where  (a,b) = dvu (x:env) e1
 dvu env (Pair e1 e2) = (a1+a2,b1+b2)
-	where	(a1,b1) = dvu env e1
-		(a2,b2) = dvu env e2
+    where  
+        (a1,b1) = dvu env e1
+        (a2,b2) = dvu env e2
 dvu env (Let x e1 e2) = (a1+a2,b1+b2)
-	where	(a1,b1) = dvu (x:env) e1
-		(a2,b2) = dvu (x:env) e2
+    where  
+        (a1,b1) = dvu (x:env) e1
+        (a2,b2) = dvu (x:env) e2
 
 
 dpa :: Expr -> Int
 dpa (App e1 e2) = 1+(max a1 a2)
-	where	a1 = dpa e1
-		a2 = dpa e2
+    where  
+        a1 = dpa e1
+        a2 = dpa e2
 dpa (Lam x e1) = dpa e1
 dpa (Pair e1 e2) = max a1 a2
-	where	a1 = dpa e1
-		a2 = dpa e2
+    where  
+        a1 = dpa e1
+        a2 = dpa e2
 dpa (Let x e1 e2) = max a1 a2
-	where	a1 = dpa e1
-		a2 = dpa e2
+    where  
+        a1 = dpa e1
+        a2 = dpa e2
 dpa _ = 0
 
 allexs = [tough1, tough2, tough4, tough5, bernstein1995a, choppella1995b,
-	size15, size10, size10app, deep Pair 5, deep Pair 3, deep App 2,
-	deep App 3, da2, da2b, lt, ss, ssr, ssm, ssl, vr, vrs, vry,
-	vr', vr1', vr1l, h1, h2]
+    size15, size10, size10app, deep Pair 5, deep Pair 3, deep App 2,
+    deep App 3, da2, da2b, lt, ss, ssr, ssm, ssl, vr, vrs, vry,
+    vr', vr1', vr1l, h1, h2]
 
 ent :: Expr -> Int
 ent (App e1 e2) = a1+a2
-	where	a1 = ent e1
-		a2 = ent e2
+    where  
+        a1 = ent e1
+        a2 = ent e2
 ent (Lam x e1) = (product [1..count x e1])+ent e1
 ent (Pair e1 e2) = a1+a2
-	where	a1 = ent e1
-		a2 = ent e2
+    where  
+        a1 = ent e1
+        a2 = ent e2
 ent (Let x e1 e2) = a1+a2
-	where	a1 = ent e1
-		a2 = ent e2
+    where  
+        a1 = ent e1
+        a2 = ent e2
 ent _ = 0
 
 
 ent2 :: Expr -> Int
 ent2 (App e1 e2) = a1+a2
-	where	a1 = ent2 e1
-		a2 = ent2 e2
+    where  
+        a1 = ent2 e1
+        a2 = ent2 e2
 ent2 (Lam x e1) = if c > 1 then (2 ^ (c - 1))+ent e1 else ent e1
-	where c = count x e1
+    where c = count x e1
 ent2 (Pair e1 e2) = a1+a2
-	where	a1 = ent2 e1
-		a2 = ent2 e2
+    where  
+        a1 = ent2 e1
+        a2 = ent2 e2
 ent2 (Let x e1 e2) = a1+a2
-	where	a1 = ent2 e1
-		a2 = ent2 e2
+    where  
+        a1 = ent2 e1
+        a2 = ent2 e2
 ent2 _ = 0
 
 

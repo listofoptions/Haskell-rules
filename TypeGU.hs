@@ -1,14 +1,15 @@
 -- ** GENERIC UNIFICATION
+{-#LANGUAGE DeriveDataTypeable#-}
 
 module TypeGU where
 
-import Monad
-import List
-import Maybe
+import Control.Monad
+import Data.List
+import Data.Maybe
 
 import Data.Generics
 
-import GHC.IOBase (unsafePerformIO)
+import System.IO.Unsafe (unsafePerformIO)
 
 -- *****************
 -- NOTE: The following must be present for use in GHC 6.4
@@ -24,23 +25,23 @@ conString = showConstr
 
 -- CS isInfix name
 data CS = CS {csInfix :: Bool,  csName :: String }
-	deriving (Eq, Show, Typeable, Data)
+    deriving (Eq, Show, Typeable, Data)
 
 toCS :: Constr -> CS
 toCS x | conFixity x == Infix = CS True (conString x)
 toCS x | otherwise = CS False (conString x)
 
 data GS = GSVar Int | GSCons CS [GS] | GSInt Int | GSChar Char
-	deriving (Eq, Show, Typeable, Data)
+    deriving (Eq, Show, Typeable, Data)
 
 -- This type must be used to represent unifiable variables
 -- by the clients
 newtype MVar = MVar Int
-	deriving (Eq, Typeable, Data, Read, Show)
+    deriving (Eq, Typeable, Data, Read, Show)
 
 instance Enum MVar where
-	fromEnum (MVar x) = x
-	toEnum x = MVar x
+    fromEnum (MVar x) = x
+    toEnum x = MVar x
 
 base = MVar 0
 
@@ -53,7 +54,7 @@ mkGS :: Data a => a -> GS
 mkGS x | isJust ((cast x)::Maybe Int) = GSInt (fromJust ((cast x)::Maybe Int))
 mkGS x | isJust ((cast x)::Maybe Char) = GSChar (fromJust ((cast x)::Maybe Char))
 mkGS x | (csName $ toCS $ toConstr x) == "MVar" =
-	GSVar ((fromJust.head) (gmapQ cast x))
+    GSVar ((fromJust.head) (gmapQ cast x))
 mkGS x = GSCons (toCS $ toConstr x) (gmapQ mkGS x)
 
 
@@ -65,27 +66,31 @@ mkGS x = GSCons (toCS $ toConstr x) (gmapQ mkGS x)
 -- things so that frgs doesn't get called on them
 frGS :: Read a => GS -> a
 frGS x = 
---	unsafePerformIO (do {putStrLn (show x); putStrLn ((s x)); return (read (s x));})
+--  unsafePerformIO (do {putStrLn (show x); putStrLn ((s x)); return (read (s x));})
 --
-	read (s x)
-	where 	s (GSCons x rl) = case (csInfix x) of
-			False -> (csName x)++" "++rs rl
-			True -> case (csName x) of
-				"(:)" -> "["++mkList rl++"]"
-				csx -> "("++(s (head rl))++" "++
-					[head (tail csx)]++
-					" "++(s (last rl))++")"
-		s (GSVar x) = "MVar "++(show x)
-		s (GSInt x) = show x
-		s (GSChar x) = show x
-		rs rl = concatMap (\x->let sx = s x in (case (head sx) of
-				'[' -> sx++" "
-				_ -> "("++sx++") ")
-				) rl
-		mkList :: [GS] -> String
-		mkList [x, (GSCons m y)] | csName m == "(:)" = 
-			(s x)++","++(mkList y)
-		mkList [x, y] = (s x)
+    read (s x)
+    where  
+        s (GSCons x rl) =
+            case (csInfix x) of
+                False -> (csName x) ++ " " ++ rs rl
+                True -> case (csName x) of
+                    "(:)" -> "["++mkList rl++"]"
+                    csx -> "("++(s (head rl))++" "++
+                        [head (tail csx)]++
+                        " "++(s (last rl))++")"
+        s (GSVar x) = "MVar "++(show x)
+        s (GSInt x) = show x
+        s (GSChar x) = show x
+        
+        rs rl = concatMap (\x->let sx = s x in (case (head sx) of
+                '[' -> sx++" "
+                _ -> "("++sx++") ")
+                ) rl
+        
+        mkList :: [GS] -> String
+        mkList [x, (GSCons m y)] | csName m == "(:)" = 
+            (s x)++","++(mkList y)
+        mkList [x, y] = (s x)
 
 
 
@@ -97,10 +102,10 @@ gunify x y | x == y = Just []
 gunify x@(GSCons _ [GSVar _]) y | not (gIsIn x y) = Just [(x,y)]
 gunify x y@(GSCons _ [GSVar _]) | not (gIsIn y x) = Just [(y,x)]
 gunify (GSCons m1 rl1) (GSCons m2 rl2) | m1 == m2 = do
-	um <- mapM (uncurry gunify) (zip rl1 rl2)
-	foldM gasl [] um
+    um <- mapM (uncurry gunify) (zip rl1 rl2)
+    foldM gasl [] um
 gunify _ _ = Nothing
-	
+    
 
 gIsIn :: GS -> GS -> Bool
 gIsIn x y | x == y = True
@@ -115,25 +120,26 @@ gHasVars _ = False
 
 gasl :: [(GS,GS)] -> [(GS,GS)] -> Maybe [(GS,GS)]
 gasl xs ys = do
-	xys <- gasl' xs ys
-	case (findmapair xys) of
-		Nothing -> return xys
-		(Just p) -> gumapair xys p
+    xys <- gasl' xs ys
+    case (findmapair xys) of
+        Nothing -> return xys
+        (Just p) -> gumapair xys p
 
 
 gasl' :: [(GS,GS)] -> [(GS,GS)] -> Maybe [(GS,GS)]
 gasl' xs (yp:ys) = do
-	r <- gasl xs ys
-	return $ (gsubs yp xs):r
+    r <- gasl xs ys
+    return $ (gsubs yp xs):r
 gasl' x [] = return x
 
 
 gumapair :: [(GS,GS)] -> (GS,GS,GS) -> Maybe [(GS,GS)]
 gumapair xl (x,z1,z2) = ur
-	where 	xl' = xl \\ [(x,z1)] -- (x,z2)
-		ur = case (gunify z1 z2) of
-			(Just x) -> gasl x xl'
-			Nothing -> Nothing
+    where  
+        xl' = xl \\ [(x,z1)] -- (x,z2)
+        ur  = case (gunify z1 z2) of
+                (Just x) -> gasl x xl'
+                Nothing -> Nothing
 
 
 
@@ -162,21 +168,22 @@ gsubs = foldi gsubs1
 
 foldi :: Eq a => (a -> b -> a) -> a -> [b] -> a
 foldi f b rl = if (r == r')  then r else foldi f r' rl 
-	where 	r = foldl f b rl
-		r' = foldl f r rl
+    where
+        r = foldl f b rl
+        r' = foldl f r rl
 
 gbiasl :: [(GS,GS)] -> [(GS,GS)] -> Maybe [(GS,GS)]
 gbiasl xs ys = do
-	xys <- gasl xs ys
-	xys' <- gasl ys xys
-	return (remdup xys')
+    xys <- gasl xs ys
+    xys' <- gasl ys xys
+    return (remdup xys')
 
 remdup :: Eq a => [(a,a)] -> [(a,a)]
 remdup xl = filter (\(x,y)->(x /= y)) (nub xl)
 
 findmapair :: (Eq a) => [(a,a)] -> Maybe (a,a,a)
 findmapair xl = if null ac then Nothing else Just $ head ac
-	where ac = [(x,z1,z2) | (x,z1) <- xl, (y,z2) <- xl, x == y, z1 /= z2]
+    where ac = [(x,z1,z2) | (x,z1) <- xl, (y,z2) <- xl, x == y, z1 /= z2]
 
 
 
