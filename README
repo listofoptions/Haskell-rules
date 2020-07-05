@@ -1,0 +1,41 @@
+Rule DSEL with Examples
+Steve Kollmansberger and Martin Erwig
+
+
+1. PREPARATIONS
+
+Requires GHC 6.2 or 6.4.  You must adjust a setting in TypeGU.hs based on this!
+
+The default setting assumes GHC 6.4.  If you are using 6.4, you don't need to make
+any changes.  If, however, you are using GHC 6.2, open TypeGU.hs and comment out
+lines 16 and 17.
+
+In addition, glasgow extensions are required.  You can start the examples with
+
+ghci -fglasgow-exts Type_.hs
+
+where _ is the appropriate name, see below.
+
+Other Haskell compilers/versions not tested. Your mileage may vary.
+
+2. CORE FILES
+
+The core DSEL files are:
+
+NDSM.hs		Non-deterministic state monad
+TypeGU.hs	Generic unification, substitution, and structures
+TypeGT.hs	Rule DSEL, including lifting
+
+3. EXAMPLES
+
+TypeFV.hs	Determine if a variable is free in a lambda term
+TypeFVSet.hs	Determine the set of free variables in a lambda term
+TypeLam.hs	Type inference for lambda calculus
+TypeChgTrad.hs	The first (par, arg, def) type change system
+TypeChgMin.hs	The second (vchg) type change system
+TypeChgPlus.hs	Concrete change suggestions
+
+
+Supporting file:
+
+TypeChg.hs	Foundation for all type change examples
