@@ -4,19 +4,15 @@ Steve Kollmansberger and Martin Erwig (maintained by listofoptions, do not email
 
 1. PREPARATIONS
 
-Requires GHC 6.2 or 6.4.  You must adjust a setting in TypeGU.hs based on this!
+Requires GHC 8.10 and above
 
-The default setting assumes GHC 6.4.  If you are using 6.4, you don't need to make
-any changes.  If, however, you are using GHC 6.2, open TypeGU.hs and comment out
-lines 16 and 17.
+You can start the examples with
 
-In addition, glasgow extensions are required.  You can start the examples with
-
-ghci -fglasgow-exts Type_.hs
+cabal repl Examples.Type_.hs
 
 where _ is the appropriate name, see below.
 
-Other Haskell compilers/versions not tested. Your mileage may vary.
+Other Haskell compilers/versions not tested. Your mileage may vary. (updated to latest haskell, test suite pending)
 
 2. CORE FILES
 
