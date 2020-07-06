@@ -1,5 +1,5 @@
-cabal-version:		2.4
-name:				Haskell-Rules
+cabal-version:      2.4
+name:               Haskell-Rules
 -- The package version.  See the Haskell package versioning policy (PVP)
 -- for standards guiding when and how versions should be incremented.
 -- https://pvp.haskell.org
@@ -43,5 +43,5 @@ test-suite Haskell-Rules-test
     hs-source-dirs:     test
     main-is:            MyLibTest.hs
     build-depends:      base ^>=4.14.0.0,
-						syb ^>= 0.7.1
+                        syb ^>= 0.7.1
 
